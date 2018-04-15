@@ -1,0 +1,280 @@
+﻿@model IEnumerable<knockoutCURD.Models.Customer>
+
+
+
+@{
+    ViewBag.Title = " Index ";
+}
+
+<h2>Customer </h2>
+
+<p>
+    <a href="javascript:void(0);" data-bind="click: createCustomer"
+       class="btn-create btn btn-success">Add customer</a>
+</p>
+<table class="table table-responsive table-hover table-striped table-bordered">
+    <tr>
+        <th>
+            CustomerID
+        </th>
+        <th>
+            Name
+        </th>
+        <th>
+            Age
+        </th>
+        <th>
+            Address
+        </th>
+        <th>Actions</th>
+    </tr>
+
+    <tbody data-bind="foreach: Customers">
+        <tr>
+            <td data-bind="text: CustomerID"></td>
+            <td data-bind="text: Name"></td>
+            <td data-bind="text: Age"></td>
+            <td data-bind="text: Address"></td>
+
+            <td>
+                <a href="javascript:void(0);" data-bind="click: $parent.viewCustomer"
+                   class="btn-details btn btn-success">Details</a>
+                <a href="javascript:void(0);" data-bind="click: $parent.editCustomer"
+                   class="btn-edit btn btn-success">Edit</a>
+                <a href="javascript:void(0);" data-bind="click: $parent.deleteCustomer"
+                   class="btn-delete btn btn-success">Delete</a>
+            </td>
+        </tr>
+    </tbody>
+
+</table>
+
+<!-- Modal for CRUD operations -->
+<div id="my-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-body" id="my-modal-content">
+                <!-- Modal content goes here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-dismiss="modal" id="clsBtn">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- End CRUD Modal -->
+
+@section scripts
+{
+
+   
+
+
+    <script type="text/javascript">
+        function Customer(data) {
+            var self = this;
+            self.CustomerID = ko.observable();
+            self.Name = ko.observable().extend({
+                required: true
+            });
+            self.Age = ko.observable().extend({
+                required: true
+            });
+            self.Address = ko.observable().extend({
+                required: true
+            });
+
+            if (data) {
+                self.CustomerID(data.CustomerID);
+                self.Name(data.Name);
+                self.Age(data.Age);
+                self.Address(data.Address);
+            }
+        }
+        function CustomerViewModel() {
+            var self = this;
+            var modalOptions = { "backdrop": "static", keyboard: true };
+            self.Customers = ko.observableArray();
+            self.newCustomer = new Customer();
+            self.selectedCustomer = new Customer();
+
+            // Response to 'Create ' click.
+            self.createCustomer = function () {
+                self.newCustomer = new Customer();
+                self.newCustomer.errors = ko.validation.group(self.newCustomer);
+                // Get the 'Create' view from server.
+                $.ajax({
+                    type: "GET",
+                    url: "/Customers/Create",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('create-customer-form'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            }
+
+            // Response to 'Create' button in the Create view.
+            self.createConfirmed = function () {
+                if (self.newCustomer.errors().length === 0) {
+                    $.ajax({
+                        type: "POST",
+                        url: "/Customers/Create",
+                        data: $('#create-customer-form').serialize(),
+                        datatype: "json",
+                        success: function (data) {
+                            if (data > 0) {
+                                // Get the new ID.
+                                self.newCustomer.CustomerID(data);
+                                // Add the new sale into 'sales' array.
+                                self.Customers.push(self.newCustomer);
+                                $('#my-modal').modal('hide');
+                            } else {
+                                alert("An error occured, please try again!");
+                                $('#my-modal').modal('hide');
+                            }
+                        }
+                    });
+                } else {
+                    alert("Error! Please check your submission.");
+
+                }
+            };
+
+            // Response to 'Details' button click.
+            self.viewCustomer = function (data) {
+                self.selectedCustomer = data;
+                // Get the 'Details' view from server.
+                $.ajax({
+                    type: "GET",
+                    url: "/Customers/Details",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('customer-details'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            }
+
+            // Response to 'Edit' button click.
+            self.editCustomer = function (data) {
+                self.selectedCustomer = data;
+                self.newCustomer = new Customer(ko.toJS(data));
+                self.newCustomer.errors = ko.validation.group(self.newCustomer);
+                // Get the "Edit" view from the server.
+                $.ajax({
+                    type: "GET",
+                    url: "/Customers/Edit",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('edit-customer-form'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            }
+
+            // Edit confirmed action.
+            self.editConfirmed = function () {
+                if (self.newCustomer.errors().length === 0) {
+                    // Save new data to the database.
+                    $.ajax({
+                        type: "POST",
+                        url: "/Customers/Edit",
+                        data: $('#edit-customer-form').serialize(),
+                        success: function (data) {
+                            // Update viewModel array.
+                            self.Customers.replace(self.selectedCustomer, self.newCustomer);
+                            $('#my-modal').modal('hide');
+                        },
+                        error: function (e) {
+                            alert(e.message);
+                        }
+                    });
+                } else {
+                    alert("Error! Please check your submission.");
+
+                }
+            };
+
+            // Response to 'Delete' button click.
+            self.deleteCustomer = function (data) {
+                self.selectedCustomer = data;
+                // Call the Delete action to get the partial view HTML document.
+                $.ajax({
+                    type: "GET",
+                    url: "/Customers/Delete",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('delete-customer'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            };
+
+            // Delete confirmed action.
+            self.deleteConfirmed = function () {
+                $.ajax({
+                    type: "POST",
+                    url: "/Customers/Delete",
+                    data: $('#delete-customer-form').serialize(),
+                    datatype: "html",
+                    success: function (data) {
+                        // Remove the selected product from the observable array.
+                        self.Customers.remove(self.selectedCustomer);
+                        $('#my-modal').modal('hide');
+                    },
+                    error: function (e) {
+                        if (e.status == 500) // Foreign key violation.
+                            alert("This entry has associated Sale entries. Delete failed!");
+                        else
+                            alert("Error! Delete failed!");
+                    }
+                });
+            };
+
+
+        }
+        $("document").ready(function () {
+            ko.validation.init({
+                registerExtenders: true,
+                messagesOnModified: true,
+                insertMessages: true,
+                parseInputAttributes: true,
+                errorClass: 'errorStyle',
+                messageTemplate: null
+
+            }, true);
+            var viewModel = new CustomerViewModel();
+            // Get all data from the server and bind them to the view model.
+            $.get("/Customers/List", function (data) {
+                var customer;
+                $.each(data, function (i, item) {
+                    customer = new Customer(item);
+                    viewModel.Customers.push(customer);
+                })
+            });
+
+            ko.validation.registerExtenders();
+            ko.applyBindings(viewModel);
+        });
+    </script>
+
+}

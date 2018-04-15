@@ -1,0 +1,272 @@
+﻿@model IEnumerable<knockoutCURD.Models.Product>
+
+@{
+    ViewBag.Title = "Index ";
+}
+
+<h2>Product </h2>
+
+<p>
+    <a href="javascript:void(0);" data-bind="click: createProduct"
+       class="btn-create btn btn-success">Add product</a>
+</p>
+<table class="table table-responsive table-hover table-striped table-bordered">
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model.ProductID)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Name)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Price)
+        </th>
+        <th> Actions</th>
+    </tr>
+
+    <tbody data-bind="foreach: Products">
+        <tr>
+            <td data-bind="text: ProductID"></td>
+            <td data-bind="text: Name"></td>
+            <td data-bind="text:Price"></td>
+
+            <td>
+                <a href="javascript:void(0);" data-bind="click: $parent.viewProduct"
+                   class="btn-details btn btn-success">Details</a>
+                <a href="javascript:void(0);" data-bind="click: $parent.editProduct"
+                   class="btn-edit btn btn-success">Edit</a>
+                <a href="javascript:void(0);" data-bind="click: $parent.deleteProduct"
+                   class="btn-delete btn btn-success">Delete</a>
+            </td>
+        </tr>
+    </tbody>
+
+</table>
+  
+
+<!-- Modal for CRUD operations -->
+<div id="my-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-body" id="my-modal-content">
+                <!-- Modal content goes here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-dismiss="modal" id="clsBtn">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- End CRUD Modal -->
+
+@section scripts
+{
+
+   
+
+
+    <script type="text/javascript">
+        function Product(data) {
+            var self = this;
+            self.ProductID = ko.observable();
+            self.Name = ko.observable().extend({
+                required: true
+            });
+            self.Price = ko.observable().extend({
+                required: true
+            });
+
+            if (data) {
+                self.ProductID(data.ProductID);
+                self.Name(data.Name);
+                self.Price(data.Price);
+            }
+        }
+        function ProductViewModel() {
+            var self = this;
+            var modalOptions = { "backdrop": "static", keyboard: true };
+            self.Products = ko.observableArray();
+            self.newProduct = new Product();
+            self.selectedProduct = new Product();
+
+            // Response to 'Create store' click.
+            self.createProduct = function () {
+                self.newProduct = new Product();
+                self.newProduct.errors = ko.validation.group(self.newProduct);
+                // Get the 'Create' view from server.
+                $.ajax({
+                    type: "GET",
+                    url: "/Products/Create",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('create-product-form'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            }
+
+            // Response to 'Create' button in the Create view.
+            self.createConfirmed = function () {
+                if (self.newProduct.errors().length === 0) {
+                    $.ajax({
+                        type: "POST",
+                        url: "/Products/Create",
+                        data: $('#create-product-form').serialize(),
+                        datatype: "json",
+                        success: function (data) {
+                            if (data > 0) {
+                                // Get the new ID.
+                                self.newProduct.ProductID(data);
+                                // Add the new sale into 'sales' array.
+                                self.Products.push(self.newProduct);
+                                $('#my-modal').modal('hide');
+                            } else {
+                                alert("An error occured, please try again!");
+                                $('#my-modal').modal('hide');
+                            }
+                        }
+                    });
+                } else {
+                    alert("Error! Please check your submission.");
+
+                }
+            };
+
+            // Response to 'Details' button click.
+            self.viewProduct = function (data) {
+                self.selectedProduct = data;
+                // Get the 'Details' view from server.
+                $.ajax({
+                    type: "GET",
+                    url: "/Products/Details",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('product-details'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            }
+
+            // Response to 'Edit' button click.
+            self.editProduct = function (data) {
+                self.selectedProduct = data;
+                self.newProduct = new Product(ko.toJS(data));
+                self.newProduct.errors = ko.validation.group(self.newProduct);
+                // Get the "Edit" view from the server.
+                $.ajax({
+                    type: "GET",
+                    url: "/Products/Edit",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('edit-product-form'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            }
+
+            // Edit confirmed action.
+            self.editConfirmed = function () {
+                if (self.newProduct.errors().length === 0) {
+                    // Save new data to the database.
+                    $.ajax({
+                        type: "POST",
+                        url: "/Products/Edit",
+                        data: $('#edit-product-form').serialize(),
+                        success: function (data) {
+                            // Update viewModel array.
+                            self.Products.replace(self.selectedProduct, self.newProduct);
+                            $('#my-modal').modal('hide');
+                        },
+                        error: function (e) {
+                            alert(e.message);
+                        }
+                    });
+                } else {
+                    alert("Error! Please check your submission.");
+
+                }
+            };
+
+            // Response to 'Delete' button click.
+            self.deleteProduct = function (data) {
+                self.selectedProduct = data;
+                // Call the Delete action to get the partial view HTML document.
+                $.ajax({
+                    type: "GET",
+                    url: "/Products/Delete",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('delete-product'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            };
+
+            // Delete confirmed action.
+            self.deleteConfirmed = function () {
+                $.ajax({
+                    type: "POST",
+                    url: "/Products/Delete",
+                    data: $('#delete-product-form').serialize(),
+                    datatype: "html",
+                    success: function (data) {
+                        // Remove the selected product from the observable array.
+                        self.Products.remove(self.selectedProduct);
+                        $('#my-modal').modal('hide');
+                    },
+                    error: function (e) {
+                        if (e.status == 500) // Foreign key violation.
+                            alert("This product has associated Sale entries. Delete failed!");
+                        else
+                            alert("Error! Delete failed!");
+                    }
+                });
+            };
+
+
+        }
+        $("document").ready(function () {
+            ko.validation.init({
+                registerExtenders: true,
+                messagesOnModified: true,
+                insertMessages: true,
+                parseInputAttributes: true,
+                errorClass: 'errorStyle',
+                messageTemplate: null
+
+            }, true);
+            var viewModel = new ProductViewModel();
+            // Get all data from the server and bind them to the view model.
+            $.get("/Products/GetProducts", function (data) {
+                var product;
+                $.each(data, function (i, item) {
+                    product = new Product(item);
+                    viewModel.Products.push(product);
+                })
+            });
+
+            ko.validation.registerExtenders();
+            ko.applyBindings(viewModel);
+        });
+    </script>
+
+}
+    

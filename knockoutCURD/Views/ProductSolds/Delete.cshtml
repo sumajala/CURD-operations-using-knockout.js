@@ -1,0 +1,52 @@
+﻿@model knockoutCURD.Models.ProductSold
+
+
+@{
+    ViewBag.Title = "Delete";
+}
+
+<h2>Delete</h2>
+
+
+<h3>Are you sure you want to delete this?</h3>
+<div id="delete-sale">
+    <h4> Sale(ID <span data-bind="text: selectedSale.ID"></span>)</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.DateSold)
+        </dt>
+
+        <dd data-bind="text: selectedSale.DateSold"></dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.Customer.Name)
+        </dt>
+
+        <dd data-bind="text: selectedSale.CustomerID"></dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.Product.Name)
+        </dt>
+
+        <dd data-bind="text: selectedSale.ProductID"></dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.Store.Name)
+        </dt>
+
+        <dd data-bind="text: selectedSale.StoreID"></dd>
+
+    </dl>
+
+    @using (Html.BeginForm("", "", FormMethod.Post, new { id = "delete-sale-form", action = "javascript:void(0);" }))
+
+    {
+        @Html.AntiForgeryToken()
+
+        <input hidden data-bind="value: selectedSale.ID" id="ID" name="ID" />
+        <div class="form-actions no-color">
+            <input type="submit" value="Delete" class="btn btn-success" data-bind="click: deleteConfirmed" />
+        </div>
+    }
+</div>

@@ -1,0 +1,30 @@
+﻿@model knockoutCURD.Models.Customer
+
+
+
+@{
+    ViewBag.Title = "Details";
+}
+
+<h2>Details</h2>
+
+<div id="customer-details">
+    <h4>Customer,</h4>
+    <hr />
+    <dl class="dl-horizontal">
+
+        <dt>@Html.DisplayNameFor(model => model.CustomerID)</dt>
+        <dd data-bind="text: selectedCustomer.CustomerID"></dd>
+
+        <dt>@Html.DisplayNameFor(model => model.Name)</dt>
+        <dd data-bind="text: selectedCustomer.Name"></dd>
+
+        <dt>@Html.DisplayNameFor(model => model.Age)</dt>
+        <dd data-bind="text: selectedCustomer.Age"></dd>
+
+        <dt>@Html.DisplayNameFor(model => model.Address)</dt>
+        <dd data-bind="text: selectedCustomer.Address"></dd>
+
+    </dl>
+</div>
+

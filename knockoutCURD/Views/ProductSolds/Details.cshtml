@@ -1,0 +1,41 @@
+﻿@model knockoutCURD.Models.ProductSold
+
+
+@{
+    ViewBag.Title = "Details";
+}
+
+<div id="sale-details">
+    <h2>Details</h2>
+    <div>
+        <h4>ProductSold</h4>
+        <hr />
+        <dl class="dl-horizontal">
+            <dt>
+                @Html.DisplayNameFor(model => model.DateSold)
+            </dt>
+            <dd data-bind="text: selectedSale.DateSold"></dd>
+
+
+            <dt>
+                @Html.DisplayNameFor(model => model.Customer.Name)
+            </dt>
+
+            <dd data-bind="text: selectedSale.CustomerID
+                "></dd>
+
+            <dt>
+                @Html.DisplayNameFor(model => model.Product.Name)
+            </dt>
+
+            <dd data-bind="text: selectedSale.ProductID"></dd>
+
+            <dt>
+                @Html.DisplayNameFor(model => model.Store.Name)
+            </dt>
+
+            <dd data-bind="text: selectedSale.StoreID"></dd>
+
+        </dl>
+    </div>
+</div>

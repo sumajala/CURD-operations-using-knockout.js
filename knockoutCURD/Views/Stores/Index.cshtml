@@ -1,0 +1,271 @@
+﻿@model IEnumerable<knockoutCURD.Models.Store>
+
+
+@{
+    ViewBag.Title = " Index ";
+}
+
+
+<h2>Store </h2>
+
+<p>
+    <a href="javascript:void(0);" data-bind="click: createStore"
+       class="btn-create btn btn-success">Add Store</a>
+</p>
+<table class="table table-responsive table-hover table-striped table-bordered">
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model.StoreID)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Name)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Address)
+        </th>
+        <th>Actions</th>
+    </tr>
+
+    <tbody data-bind="foreach: Stores">
+        <tr>
+            <td data-bind="text: StoreID"></td>
+            <td data-bind="text: Name"></td>
+            <td data-bind="text: Address"></td>
+
+            <td>
+                <a href="javascript:void(0);" data-bind="click: $parent.viewStore"
+                   class="btn-details btn btn-success">Details</a>
+                <a href="javascript:void(0);" data-bind="click: $parent.editStore"
+                   class="btn-edit btn btn-success">Edit</a>
+                <a href="javascript:void(0);" data-bind="click: $parent.deleteStore"
+                   class="btn-delete btn btn-success">Delete</a>
+            </td>
+        </tr>
+    </tbody>
+
+</table>
+
+<!-- Modal for CRUD operations -->
+<div id="my-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-body" id="my-modal-content">
+                <!-- Modal content goes here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-dismiss="modal" id="clsBtn">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- End CRUD Modal -->
+
+@section scripts
+{
+
+   
+
+    <script type="text/javascript">
+        function Store(data) {
+            var self = this;
+            self.StoreID = ko.observable();
+            self.Name = ko.observable().extend({
+                required: true
+            });
+            self.Address = ko.observable().extend({
+                required: true
+            });
+
+            if (data) {
+                self.StoreID(data.StoreID);
+                self.Name(data.Name);
+                self.Address(data.Address);
+            }
+        }
+        function StoreViewModel() {
+            var self = this;
+            var modalOptions = { "backdrop": "static", keyboard: true };
+            self.Stores = ko.observableArray();
+            self.newStore = new Store();
+            self.selectedStore = new Store();
+
+            // Response to 'Create store' click.
+            self.createStore = function () {
+                self.newStore = new Store();
+                self.newStore.errors = ko.validation.group(self.newStore);
+                // Get the 'Create' view from server.
+                $.ajax({
+                    type: "GET",
+                    url: "/Stores/Create",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('create-store-form'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            }
+
+            // Response to 'Create' button in the Create view.
+            self.createConfirmed = function () {
+                if (self.newStore.errors().length === 0) {
+                    $.ajax({
+                        type: "POST",
+                        url: "/Stores/Create",
+                        data: $('#create-store-form').serialize(),
+                        datatype: "json",
+                        success: function (data) {
+                            if (data > 0) {
+                                // Get the new ID.
+                                self.newStore.StoreID(data);
+                                // Add the new sale into 'sales' array.
+                                self.Stores.push(self.newStore);
+                                $('#my-modal').modal('hide');
+                            } else {
+                                alert("An error occured, please try again!");
+                                $('#my-modal').modal('hide');
+                            }
+                        }
+                    });
+                } else {
+                    alert("Error! Please check your submission.");
+
+                }
+            };
+
+            // Response to 'Details' button click.
+            self.viewStore = function (data) {
+                self.selectedStore = data;
+                // Get the 'Details' view from server.
+                $.ajax({
+                    type: "GET",
+                    url: "/Stores/Details",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('store-details'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            }
+
+            // Response to 'Edit' button click.
+            self.editStore = function (data) {
+                self.selectedStore = data;
+                self.newStore = new Store(ko.toJS(data));
+                self.newStore.errors = ko.validation.group(self.newStore);
+                // Get the "Edit" view from the server.
+                $.ajax({
+                    type: "GET",
+                    url: "/Stores/Edit",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('edit-store-form'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            }
+
+            // Edit confirmed action.
+            self.editConfirmed = function () {
+                if (self.newStore.errors().length === 0) {
+                    // Save new data to the database.
+                    $.ajax({
+                        type: "POST",
+                        url: "/Stores/Edit",
+                        data: $('#edit-store-form').serialize(),
+                        success: function (data) {
+                            // Update viewModel array.
+                            self.Stores.replace(self.selectedStore, self.newStore);
+                            $('#my-modal').modal('hide');
+                        },
+                        error: function (e) {
+                            alert(e.message);
+                        }
+                    });
+                } else {
+                    alert("Error! Please check your submission.");
+
+                }
+            };
+
+            // Response to 'Delete' button click.
+            self.deleteStore = function (data) {
+                self.selectedStore = data;
+                // Call the Delete action to get the partial view HTML document.
+                $.ajax({
+                    type: "GET",
+                    url: "/Stores/Delete",
+                    datatype: "html",
+                    success: function (data) {
+                        // Insert the partial view HTML into the bootstrap modal.
+                        $('#my-modal-content').html(data);
+                        $('#my-modal').modal(modalOptions);
+                        // Apply binding to the newly inserted html section.
+                        ko.applyBindings(self, document.getElementById('delete-store'));
+                        $('#my-modal').modal('show');
+                    }
+                });
+            };
+
+            // Delete confirmed action.
+            self.deleteConfirmed = function () {
+                $.ajax({
+                    type: "POST",
+                    url: "/Stores/Delete",
+                    data: $('#delete-store-form').serialize(),
+                    datatype: "html",
+                    success: function (data) {
+                        // Remove the selected product from the observable array.
+                        self.Stores.remove(self.selectedStore);
+                        $('#my-modal').modal('hide');
+                    },
+                    error: function (e) {
+                        if (e.status == 500) // Foreign key violation.
+                            alert("This store has associated Sale entries. Delete failed!");
+                        else
+                            alert("Error! Delete failed!");
+                    }
+                });
+            };
+
+
+        }
+        $("document").ready(function () {
+            ko.validation.init({
+                registerExtenders: true,
+                messagesOnModified: true,
+                insertMessages: true,
+                parseInputAttributes: true,
+                errorClass: 'errorStyle',
+                messageTemplate: null
+
+            }, true);
+            var viewModel = new StoreViewModel();
+            // Get all data from the server and bind them to the view model.
+            $.get("/Stores/GetStores", function (data) {
+                var store;
+                $.each(data, function (i, item) {
+                    store = new Store(item);
+                    viewModel.Stores.push(store);
+                })
+            });
+
+            ko.validation.registerExtenders();
+            ko.applyBindings(viewModel);
+        });
+    </script>
+
+}
